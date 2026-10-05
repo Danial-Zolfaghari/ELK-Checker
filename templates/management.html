@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management | Elastic Monitor</title>
+    <link rel="stylesheet" href="/static/dashboard.css?v=20260428b">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="topbar">
+        <h1><i class="fas fa-sliders-h"></i> Management</h1>
+        <div class="topbar-actions">
+            <a class="btn btn-secondary" href="/dashboard">Dashboard</a>
+            <button class="btn btn-danger" type="button" id="logout-btn">Logout</button>
+        </div>
+    </header>
+    <main class="container mgmt-shell">
+        <header class="mgmt-intro">
+            <p class="mgmt-intro-badge"><i class="fas fa-shield-alt"></i> Superuser</p>
+            <h2 class="mgmt-intro-title">Server &amp; access</h2>
+            <p class="mgmt-intro-desc">Users, session lifetime, Bale bot URL, and on-disk data size. Alert times on the dashboard use <strong>Asia/Tehran</strong>.</p>
+        </header>
+
+        <nav class="mgmt-tablist" role="tablist" aria-label="Management sections">
+            <button type="button" class="mgmt-tab active" id="tab-users" role="tab" aria-selected="true" aria-controls="panel-users" data-tab="users">
+                <i class="fas fa-users"></i> Users &amp; access
+            </button>
+            <button type="button" class="mgmt-tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" data-tab="security">
+                <i class="fas fa-shield-halved"></i> Security &amp; IP access
+            </button>
+            <button type="button" class="mgmt-tab" id="tab-bale" role="tab" aria-selected="false" aria-controls="panel-bale" data-tab="bale">
+                <i class="fas fa-robot"></i> Bale integration
+            </button>
+            <button type="button" class="mgmt-tab" id="tab-servers" role="tab" aria-selected="false" aria-controls="panel-servers" data-tab="servers">
+                <i class="fas fa-server"></i> Servers
+            </button>
+            <button type="button" class="mgmt-tab" id="tab-storage" role="tab" aria-selected="false" aria-controls="panel-storage" data-tab="storage">
+                <i class="fas fa-database"></i> Storage &amp; logs
+            </button>
+        </nav>
+
+        <div class="mgmt-panels">
+            <section id="panel-users" class="mgmt-panel active" role="tabpanel" aria-labelledby="tab-users" data-panel="users">
+                <div class="mgmt-users-layout">
+                    <article class="mgmt-card mgmt-card-accent">
+                        <h3 class="mgmt-card-title"><i class="fas fa-user-plus"></i> Add user</h3>
+                        <p class="mgmt-card-lead">Create dashboard logins. Regular users cannot open this page.</p>
+                        <form id="add-user-form" class="mgmt-form">
+                            <div class="form-row">
+                                <div class="form-group"><label>Username</label><input id="new-username" required autocomplete="off"></div>
+                                <div class="form-group"><label>Password</label><input id="new-password" type="password" required autocomplete="new-password"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="new-role">
+                                    <option value="user">User</option>
+                                    <option value="superuser">Superuser</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Create user</button>
+                            <p id="add-user-msg" class="mgmt-msg"></p>
+                        </form>
+                    </article>
+                    <article class="mgmt-card">
+                        <h3 class="mgmt-card-title"><i class="fas fa-address-book"></i> Accounts</h3>
+                        <p class="mgmt-card-lead">A disabled user cannot sign in; use <strong>Enable</strong> to allow login again. Delete revokes access immediately. You cannot delete your own account here.</p>
+                        <div id="user-list" class="user-table-wrap"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="panel-security" class="mgmt-panel" role="tabpanel" aria-labelledby="tab-security" hidden data-panel="security">
+                <div class="mgmt-ip-grid">
+                    <article class="mgmt-card mgmt-card-wide">
+                        <h3 class="mgmt-card-title"><i class="fas fa-list-check"></i> Whitelist mode</h3>
+                        <p class="mgmt-card-lead">When enabled, only listed IPs can see anything (including login). It can only be enabled if at least one whitelist IP exists.</p>
+                        <form id="whitelist-add-form" class="mgmt-form mgmt-form-row-inline">
+                            <div class="form-group mgmt-inline-field">
+                                <label for="whitelist-ip-input">Add IP to whitelist</label>
+                                <input id="whitelist-ip-input" placeholder="e.g. 192.168.1.10" autocomplete="off">
+                            </div>
+                            <button class="btn btn-secondary" type="submit">Add</button>
+                            <button class="btn btn-primary" type="button" id="whitelist-toggle-btn">Enable whitelist</button>
+                            <p id="whitelist-msg" class="mgmt-msg"></p>
+                        </form>
+                        <div id="whitelist-ip-list" class="user-table-wrap"></div>
+                    </article>
+
+                    <article class="mgmt-card mgmt-card-wide">
+                        <h3 class="mgmt-card-title"><i class="fas fa-user-slash"></i> Blacklist</h3>
+                        <p class="mgmt-card-lead">Blacklisted IPs cannot access any page (same effect as blocked).</p>
+                        <form id="blacklist-add-form" class="mgmt-form mgmt-form-row-inline">
+                            <div class="form-group mgmt-inline-field">
+                                <label for="blacklist-ip-input">Add IP to blacklist</label>
+                                <input id="blacklist-ip-input" placeholder="e.g. 203.0.113.7" autocomplete="off">
+                            </div>
+                            <button class="btn btn-secondary" type="submit">Add</button>
+                            <p id="blacklist-msg" class="mgmt-msg"></p>
+                        </form>
+                        <div id="blacklist-ip-list" class="user-table-wrap"></div>
+                    </article>
+
+                    <article class="mgmt-card mgmt-card-wide mgmt-session-card">
+                        <h3 class="mgmt-card-title"><i class="fas fa-clock"></i> Session & brute-force</h3>
+                        <p class="mgmt-card-lead">Session expiry and lock threshold controls.</p>
+                        <form id="session-settings-form" class="mgmt-form mgmt-form-row-inline">
+                            <div class="form-group mgmt-inline-field">
+                                <label for="session-timeout-minutes">Minutes until session expires</label>
+                                <input id="session-timeout-minutes" type="number" min="5" max="1440" step="1" value="15">
+                            </div>
+                            <div class="form-group mgmt-inline-field">
+                                <label for="brute-force-threshold">Brute-force lock threshold</label>
+                                <input id="brute-force-threshold" type="number" min="3" max="20" step="1" value="5">
+                            </div>
+                            <button class="btn btn-primary" type="submit">Save</button>
+                            <p id="session-settings-msg" class="mgmt-msg"></p>
+                        </form>
+                    </article>
+                </div>
+
+                <article class="mgmt-card mgmt-card-wide">
+                    <h3 class="mgmt-card-title"><i class="fas fa-shield-halved"></i> Auto blocked IPs (superuser protection)</h3>
+                    <p class="mgmt-card-lead">IPs blocked after repeated failed superuser logins. You can unban after review.</p>
+                    <div id="banned-ip-list" class="user-table-wrap"></div>
+                </article>
+            </section>
+
+            <section id="panel-bale" class="mgmt-panel" role="tabpanel" aria-labelledby="tab-bale" hidden data-panel="bale">
+                <article class="mgmt-card mgmt-card-wide">
+                    <h3 class="mgmt-card-title"><i class="fas fa-link"></i> Bale script server</h3>
+                    <p class="mgmt-card-lead">Global <code>bot_url</code> passed to <code>ScriptClient</code>. Per-monitor <strong>token</strong>, <strong>script name</strong>, and message are configured on each monitor in the dashboard.</p>
+                    <form id="bale-settings-form" class="mgmt-form mgmt-form-narrow">
+                        <div class="form-group">
+                            <label for="bale-bot-url">Bot URL</label>
+                            <input id="bale-bot-url" type="url" placeholder="http://localhost:8080" autocomplete="off">
+                            <small class="form-hint">Must match the HTTP endpoint your Bale script bridge listens on.</small>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Save Bale URL</button>
+                        <p id="bale-settings-msg" class="mgmt-msg"></p>
+                    </form>
+                </article>
+            </section>
+
+            <section id="panel-servers" class="mgmt-panel" role="tabpanel" aria-labelledby="tab-servers" hidden data-panel="servers">
+                <div class="mgmt-users-layout">
+                    <article class="mgmt-card mgmt-card-accent">
+                        <h3 class="mgmt-card-title"><i class="fas fa-plus-circle"></i> Add server</h3>
+                        <p class="mgmt-card-lead">Store shared credentials once, then reference them from monitors.</p>
+                        <form id="add-server-form" class="mgmt-form">
+                            <input id="edit-server-id" type="hidden" value="">
+                            <div class="form-group">
+                                <label for="new-server-name">Server name</label>
+                                <input id="new-server-name" required placeholder="e.g. Elastic Admin A" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-server-hostname">Hostname</label>
+                                <input id="new-server-hostname" required placeholder="https://elastic:9200" autocomplete="off">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="new-server-username">Username</label>
+                                    <input id="new-server-username" required autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="new-server-password">Password</label>
+                                    <input id="new-server-password" type="password" autocomplete="new-password" placeholder="">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" type="submit" id="save-server-btn">Save server</button>
+                            <button class="btn btn-secondary" type="button" id="cancel-server-edit" style="display:none;">Cancel edit</button>
+                            <p id="add-server-msg" class="mgmt-msg"></p>
+                        </form>
+                    </article>
+                    <article class="mgmt-card">
+                        <h3 class="mgmt-card-title"><i class="fas fa-server"></i> Saved servers</h3>
+                        <p class="mgmt-card-lead">Updating credentials here updates all monitors linked to that server.</p>
+                        <div id="server-list" class="user-table-wrap"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="panel-storage" class="mgmt-panel" role="tabpanel" aria-labelledby="tab-storage" hidden data-panel="storage">
+                <article class="mgmt-card mgmt-card-wide">
+                    <h3 class="mgmt-card-title"><i class="fas fa-hdd"></i> Data files</h3>
+                    <p class="mgmt-card-lead">JSON files live under <code id="storage-data-dir">data/</code> by default (<code>DATA_DIR</code> env). Sizes update when you open this tab.</p>
+                    <div id="storage-loading" class="mgmt-msg hidden">Loading…</div>
+                    <div id="storage-wrap" class="storage-wrap hidden"></div>
+                    <p id="storage-error" class="mgmt-msg error hidden"></p>
+                </article>
+            </section>
+        </div>
+    </main>
+
+    <div id="admin-password-modal" class="modal" aria-hidden="true">
+        <div class="modal-content" style="max-width: 440px">
+            <div class="modal-header">
+                <h2 style="margin:0;font-size:1.1rem;">Set password</h2>
+                <button type="button" class="modal-close" id="admin-pw-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="mgmt-card-lead" style="margin-top:0;">User: <strong id="admin-pw-modal-user"></strong></p>
+                <input type="hidden" id="admin-pw-user-id" value="">
+                <div class="form-group">
+                    <label for="admin-pw-new">New password</label>
+                    <input id="admin-pw-new" type="password" autocomplete="new-password" minlength="4">
+                </div>
+                <div class="form-group">
+                    <label for="admin-pw-confirm">Confirm</label>
+                    <input id="admin-pw-confirm" type="password" autocomplete="new-password" minlength="4">
+                </div>
+                <p id="admin-pw-msg" class="mgmt-msg"></p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="admin-pw-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="admin-pw-save">Save password</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="/static/management.js?v=20260504"></script>
+</body>
+</html>

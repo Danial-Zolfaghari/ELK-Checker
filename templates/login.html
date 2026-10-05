@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in | Elastic Monitor</title>
+    <link rel="stylesheet" href="/static/login.css?v=20260428b">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-bg"></div>
+    <main class="login-page">
+        <section class="login-brand">
+            <div class="login-brand-icon"><i class="fas fa-chart-line"></i></div>
+            <h1>Elastic Monitor</h1>
+            <p>Log checks, rules, and alerts in one place.</p>
+        </section>
+        <section class="login-card">
+            <h2>Sign in</h2>
+            <p class="login-sub">Use your dashboard credentials.</p>
+            <form id="login-form" onsubmit="event.preventDefault(); login();">
+                <label for="username">Username</label>
+                <div class="input-wrap">
+                    <i class="fas fa-user"></i>
+                    <input id="username" name="username" autocomplete="username" placeholder="admin">
+                </div>
+                <label for="password">Password</label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock"></i>
+                    <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••">
+                </div>
+                <button type="submit" class="login-submit"><span>Continue</span><i class="fas fa-arrow-right"></i></button>
+                <div id="error" class="login-error" role="alert"></div>
+            </form>
+        </section>
+    </main>
+    <script src="/static/login.js?v=20260422"></script>
+</body>
+</html>

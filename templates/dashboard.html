@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elastic Monitor Dashboard</title>
+    <link rel="stylesheet" href="/static/dashboard.css?v=20260504b">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="topbar">
+        <h1><i class="fas fa-signal"></i> Elastic Monitor Dashboard</h1>
+        <div class="topbar-actions">
+            <a class="btn btn-secondary" id="btn-management" style="display:none;" href="/management">Management</a>
+            <a class="btn btn-secondary" id="btn-change-password" style="display:none;" href="/account/password">Change password</a>
+            <button class="btn btn-primary" type="button" onclick="openMonitorModal(null)">New Monitor</button>
+            <button class="btn btn-danger" type="button" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="dashboard-stats">
+            <div class="stat-chip"><i class="fas fa-layer-group"></i> Monitors: <strong id="total-monitors">0</strong></div>
+            <div class="stat-chip stat-running"><i class="fas fa-bolt"></i> Checks run automatically (disable a monitor with its Enabled checkbox)</div>
+        </div>
+
+        <section class="alert-activity-section" aria-label="Alert activity log">
+            <button type="button" class="btn btn-secondary alert-activity-toggle" id="alert-activity-toggle" aria-expanded="false">
+                <i class="fas fa-bell"></i> Recent alert activity
+            </button>
+            <div id="alert-activity-panel" class="alert-activity-panel hidden"></div>
+        </section>
+
+        <section id="monitorList" class="monitor-grid"></section>
+    </main>
+
+    <div id="monitorModal" class="modal">
+        <div class="modal-content modal-large monitor-modal-shell">
+            <div class="modal-header monitor-modal-header">
+                <div>
+                    <p class="monitor-modal-kicker" id="monitorModalKicker">Monitor</p>
+                    <h2 class="monitor-modal-title" id="monitorModalTitle">Configure</h2>
+                </div>
+                <button type="button" class="modal-close" onclick="closeMonitorModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body monitor-modal-body">
+                <form id="monitorForm" class="monitor-form" onsubmit="event.preventDefault(); saveMonitor();">
+                    <input id="monitor_id" type="hidden">
+
+                    <section class="modal-section modal-section--identity" aria-labelledby="sec-identity-title">
+                        <header class="modal-section-head">
+                            <span class="modal-section-icon"><i class="fas fa-fingerprint"></i></span>
+                            <div class="modal-section-titles">
+                                <h3 class="modal-section-title" id="sec-identity-title">Identity</h3>
+                                <p class="modal-section-desc">Display name and whether this monitor runs.</p>
+                            </div>
+                        </header>
+                        <div class="modal-section-body">
+                            <div class="form-row">
+                                <div class="form-group"><label for="name">Name</label><input id="name" required></div>
+                                <div class="form-group form-group-checkbox-top">
+                                    <span class="field-label">Enabled</span>
+                                    <label class="toggle-like"><input id="enabled" type="checkbox" checked> Run scheduled checks</label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="modal-section modal-section--elasticsearch" aria-labelledby="sec-es-title">
+                        <header class="modal-section-head">
+                            <span class="modal-section-icon"><i class="fas fa-database"></i></span>
+                            <div class="modal-section-titles">
+                                <h3 class="modal-section-title" id="sec-es-title">Elasticsearch</h3>
+                                <p class="modal-section-desc">Connection target and authentication for the count query.</p>
+                            </div>
+                        </header>
+                        <div class="modal-section-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="server_id">Saved server (optional)</label>
+                                    <select id="server_id">
+                                        <option value="">Manual host/credentials</option>
+                                    </select>
+                                    <small id="server-hint" class="form-hint hidden"></small>
+                                </div>
+                                <div class="form-group"><label for="host">Host</label><input id="host" required placeholder="https://elastic:9200"></div>
+                                <div class="form-group"><label for="index">Index</label><input id="index" required placeholder="logs-*"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label for="username">Username</label><input id="username"></div>
+                                <div class="form-group"><label for="password">Password</label><input id="password" type="password"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="modal-section modal-section--query" aria-labelledby="sec-query-title">
+                        <header class="modal-section-head">
+                            <span class="modal-section-icon"><i class="fas fa-filter"></i></span>
+                            <div class="modal-section-titles">
+                                <h3 class="modal-section-title" id="sec-query-title">Query &amp; schedule</h3>
+                                <p class="modal-section-desc">What to count, how often to ask ES, and how far back to look in logs.</p>
+                            </div>
+                        </header>
+                        <div class="modal-section-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="query_mode">Query mode</label>
+                                    <select id="query_mode" onchange="toggleQueryMode()">
+                                        <option value="json">JSON DSL</option>
+                                        <option value="kql">KQL</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label for="timestamp_field">Timestamp field</label><input id="timestamp_field" value="@timestamp"></div>
+                            </div>
+                            <div class="form-group query-json"><label for="query_json">Query JSON</label><textarea id="query_json">{"query":{"match_all":{}}}</textarea></div>
+                            <div class="form-group query-kql hidden"><label for="query_kql">Query KQL</label><textarea id="query_kql" placeholder="service.name:api AND status:500"></textarea></div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="check_interval">Check interval (seconds)</label>
+                                    <input id="check_interval" type="number" value="60" min="5" title="Minimum 5 seconds. The scheduler wakes often and only runs this monitor when this many seconds have passed since its last run.">
+                                    <small class="form-hint">How often this monitor calls Elasticsearch.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="window_seconds">Log lookback window (seconds)</label>
+                                    <input id="window_seconds" type="number" value="60" min="5" title="Used inside the ES query time range (e.g. last 60s of logs).">
+                                    <small class="form-hint">Time range inside the index for the hit count—not the same as check interval.</small>
+                                </div>
+                            </div>
+                            <div class="form-group"><label for="alert_cooldown">Alert cooldown (seconds)</label><input id="alert_cooldown" type="number" value="300" min="0"></div>
+                        </div>
+                    </section>
+
+                    <section class="modal-section modal-section--rules" aria-labelledby="sec-rules-title">
+                        <header class="modal-section-head">
+                            <span class="modal-section-icon"><i class="fas fa-chart-line"></i></span>
+                            <div class="modal-section-titles">
+                                <h3 class="modal-section-title" id="sec-rules-title">Alert rules</h3>
+                                <p class="modal-section-desc">All optional. Combine rules to match how you want to react to hit counts.</p>
+                            </div>
+                        </header>
+                        <div class="modal-section-body">
+                            <div class="rules-grid">
+                                <span class="rule-hint-wrap">
+                                    <label class="rule-hint-label"><input id="rule_no_hit_enabled" type="checkbox" checked> Alert when no hit</label>
+                                    <span class="rule-tooltip">Triggers when the query returns <strong>zero</strong> hits in the log lookback window—useful when missing logs or silence means a problem.</span>
+                                </span>
+                                <span class="rule-hint-wrap">
+                                    <label class="rule-hint-label"><input id="rule_reverse_hit_enabled" type="checkbox"> Reverse: alert when hit exists</label>
+                                    <span class="rule-tooltip">Triggers when there is <strong>at least one</strong> hit—useful to detect that something appeared (e.g. an error line or a specific event).</span>
+                                </span>
+                                <span class="rule-hint-wrap">
+                                    <label class="rule-hint-label"><input id="rule_count_threshold_enabled" type="checkbox"> Count threshold</label>
+                                    <span class="rule-tooltip">Compares the hit count to the <strong>threshold value</strong> using the operator (greater than / less than). Combine with the fields below.</span>
+                                </span>
+                                <span class="rule-hint-wrap">
+                                    <label class="rule-hint-label"><input id="rule_volatility_enabled" type="checkbox"> Volatility</label>
+                                    <span class="rule-tooltip">Triggers when the count changes by at least the given <strong>percent</strong> within the <strong>volatility window</strong> compared to earlier samples in that window.</span>
+                                </span>
+                            </div>
+                            <div class="rules-grid">
+                                <label class="rule-hint-label"><input id="rule_no_hit_recovery_notify" type="checkbox"> no_hit: notify when logs return (ignore cooldown)</label>
+                                <label class="rule-hint-label"><input id="rule_reverse_hit_recovery_notify" type="checkbox"> reverse_hit: notify when condition clears (ignore cooldown)</label>
+                            </div>
+                            <div class="form-group checkbox-row">
+                                <label><input id="recovery_message_menu_toggle" type="checkbox"> Open status-change message settings</label>
+                            </div>
+                            <div id="recovery-message-boxes" class="hidden">
+                                <p class="form-hint">When one of these recovery options is enabled, these custom messages will be used.</p>
+                                <div class="form-row">
+                                    <div class="form-group checkbox-row">
+                                        <label><input id="recovery_sms_enabled" type="checkbox"> Send separate SMS on recovery</label>
+                                    </div>
+                                    <div class="form-group checkbox-row">
+                                        <label><input id="recovery_call_enabled" type="checkbox"> Send separate call on recovery</label>
+                                    </div>
+                                </div>
+                                <div class="form-group checkbox-row">
+                                    <label><input id="recovery_bale_enabled" type="checkbox"> Send separate Bale message on recovery</label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recovery_sms_message">Recovery SMS message</label>
+                                    <textarea id="recovery_sms_message" rows="2" placeholder="SMS text for recovery status change"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recovery_call_message">Recovery call message</label>
+                                    <textarea id="recovery_call_message" rows="2" placeholder="Call text for recovery status change"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recovery_bale_message">Recovery Bale message</label>
+                                    <textarea id="recovery_bale_message" rows="2" placeholder="Bale text for recovery status change"></textarea>
+                                    <small class="form-hint">Placeholders: <code>{name}</code>, <code>{reasons}</code></small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="rule_count_threshold_operator">Threshold operator</label>
+                                    <select id="rule_count_threshold_operator">
+                                        <option value="gt">Greater than</option>
+                                        <option value="lt">Less than</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label for="rule_count_threshold_value">Threshold value</label><input id="rule_count_threshold_value" type="number" value="0"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="rule_volatility_percent">Volatility % (within window)</label>
+                                    <input id="rule_volatility_percent" type="number" min="0" value="30" title="Alert if absolute % change vs oldest count in window exceeds this value">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rule_volatility_window_minutes">Volatility window (minutes)</label>
+                                    <input id="rule_volatility_window_minutes" type="number" min="1" value="5" title="Compare current hit count to the oldest sample in this window">
+                                </div>
+                            </div>
+                            <p class="form-hint modal-section-footnote">Volatility fires when the count changes by at least the given % vs the start of the window within N minutes.</p>
+                        </div>
+                    </section>
+
+                    <section class="modal-section modal-section--failures" aria-labelledby="sec-fail-title">
+                        <header class="modal-section-head">
+                            <span class="modal-section-icon"><i class="fas fa-plug-circle-xmark"></i></span>
+                            <div class="modal-section-titles">
+                                <h3 class="modal-section-title" id="sec-fail-title">Check failure escalation</h3>
+                                <p class="modal-section-desc">When Elasticsearch or the network fails repeatedly—not rule-based alerts.</p>
+                            </div>
+                        </header>
+                        <div class="modal-section-body">
+                            <div class="form-group checkbox-row">
+                                <label><input id="rule_error_escalation_enabled" type="checkbox"> After N consecutive failed checks, notify via channels below</label>
+                            </div>
+                            <div class="form-row form-row-triple">
+                                <div class="form-group">
+                                    <label for="rule_error_sms_after">SMS after N failures (0 = off)</label>
+                                    <input id="rule_error_sms_after" type="number" min="0" value="0" title="e.g. 3 = third failure in a row sends one SMS">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rule_error_call_after">Call after N failures (0 = off)</label>
+                                    <input id="rule_error_call_after" type="number" min="0" value="0" title="e.g. 5 = fifth failure triggers one call">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rule_error_bale_after">Bale after N failures (0 = off)</label>
+                                    <input id="rule_error_bale_after" type="number" min="0" value="0" title="Requires Bale settings and Management → Bale URL">
+                                </div>
+                            </div>
+                            <p class="form-hint modal-section-footnote">Streak resets after one successful check. SMS/call need Kavenegar; Bale needs script token/name and server URL.</p>
+                        </div>
+                    </section>
+
+                    <section class="modal-section modal-section--notifications" aria-labelledby="sec-notify-title">
+                        <header class="modal-section-head">
+                            <span class="modal-section-icon"><i class="fas fa-bell"></i></span>
+                            <div class="modal-section-titles">
+                                <h3 class="modal-section-title" id="sec-notify-title">Notifications</h3>
+                                <p class="modal-section-desc">Kavenegar for SMS/voice; Bale uses the script bridge from Management.</p>
+                            </div>
+                        </header>
+                        <div class="modal-section-body">
+                            <div class="form-row">
+                                <div class="form-group"><label for="kavenegar_api_key">Kavenegar API key</label><input id="kavenegar_api_key" autocomplete="off"></div>
+                                <div class="form-group"><label for="sms_sender">SMS sender</label><input id="sms_sender"></div>
+                            </div>
+
+                            <div class="notify-channel notify-channel--sms">
+                                <h4 class="notify-channel-title"><i class="fas fa-sms"></i> SMS</h4>
+                                <div class="form-group checkbox-row">
+                                    <label><input id="sms_enabled" type="checkbox" checked> Enable SMS alerts</label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sms_recipients">Recipients (one per line)</label>
+                                    <textarea id="sms_recipients" placeholder="09XXXXXXXXX"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sms_message">Message body</label>
+                                    <textarea id="sms_message" placeholder="Alert text for SMS"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="notify-channel notify-channel--call">
+                                <h4 class="notify-channel-title"><i class="fas fa-phone-volume"></i> Voice call</h4>
+                                <div class="form-group checkbox-row">
+                                    <label><input id="call_enabled" type="checkbox"> Enable voice call alerts</label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="call_recipients">Recipients (one per line)</label>
+                                    <textarea id="call_recipients" placeholder="09XXXXXXXXX"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="call_message">Spoken message (TTS)</label>
+                                    <textarea id="call_message" placeholder="Spoken alert text"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="notify-channel notify-channel--bale">
+                                <h4 class="notify-channel-title"><i class="fas fa-robot"></i> Bale script</h4>
+                                <p id="bale-url-hint" class="notify-channel-alert hidden"><i class="fas fa-exclamation-triangle"></i> Bale server URL is not set. A superuser must configure it under Management before Bale can be saved.</p>
+                                <div class="form-group checkbox-row">
+                                    <label><input id="bale_enabled" type="checkbox"> Enable Bale script alerts</label>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group"><label for="bale_token">Script token</label><input id="bale_token" type="password" autocomplete="new-password" placeholder="Required if Bale is enabled"></div>
+                                    <div class="form-group"><label for="bale_script_name">Script name</label><input id="bale_script_name" placeholder="e.g. Script_test2"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bale_message">Message to send via Bale</label>
+                                    <textarea id="bale_message" rows="4" placeholder="Leave empty for auto text, or write your own."></textarea>
+                                    <small class="form-hint">Placeholders: <code>{name}</code>, <code>{reasons}</code>, <code>{failures}</code>, <code>{error}</code>. Empty = no message will be sent.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bale_requester_id">Requester ID (optional)</label>
+                                    <input id="bale_requester_id" type="number" placeholder="e.g. 154241113 — sent as metadata.requester_id">
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </form>
+            </div>
+            <div class="modal-actions monitor-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeMonitorModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMonitor()"><i class="fas fa-save"></i> Save monitor</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="securityWarningModal" class="modal" aria-hidden="true">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 style="margin:0;font-size:1.15rem;color:#fecaca;"><i class="fas fa-triangle-exclamation"></i> Security warning</h2>
+            </div>
+            <div class="modal-body">
+                <p class="mgmt-card-lead" id="securityWarningText" style="margin-top:0;">Suspicious activity was detected.</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" id="securityWarningAckBtn">I read and confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="/static/app.js?v=20260504b"></script>
+</body>
+</html>

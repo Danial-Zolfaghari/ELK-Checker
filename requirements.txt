@@ -1,0 +1,9 @@
+Flask>=3.0,<4
+tzdata>=2024.1
+backports.zoneinfo>=0.2.1; python_version < "3.9"
+cryptography>=42,<47
+elasticsearch>=8,<10
+kavenegar>=1.1
+celery>=5.3,<6
+redis>=5,<7
+rich>=13,<15
