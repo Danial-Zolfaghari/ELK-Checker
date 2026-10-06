@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible ELK-Checker problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Use sanitized monitor/query examples and remove credentials or private infrastructure.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Linux, Windows, macOS]
+    validations:
+      required: true
+  - type: input
+    id: elastic
+    attributes:
+      label: Elasticsearch version
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I removed credentials, API keys, phone numbers and private infrastructure details.
+          required: true
