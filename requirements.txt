@@ -1,5 +1,5 @@
 Flask>=3.0,<4
-tzdata>=2024.1
+tzdata>=2026.5
 backports.zoneinfo>=0.2.1; python_version < "3.9"
 cryptography>=42,<47
 elasticsearch>=8,<10
