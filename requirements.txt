@@ -6,4 +6,4 @@ elasticsearch>=8,<10
 kavenegar>=1.1
 celery>=5.3,<6
 redis>=5,<7
-rich>=13,<15
+rich>=15.0.0,<16
