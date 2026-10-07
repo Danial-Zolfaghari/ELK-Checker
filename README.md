@@ -13,6 +13,12 @@
   <img alt="Flask" src="https://img.shields.io/badge/Flask-3.x-000000?logo=flask&logoColor=white">
   <img alt="Elasticsearch" src="https://img.shields.io/badge/Elasticsearch-8%2F9-005571?logo=elasticsearch&logoColor=white">
 </p>
+<p align="center">
+  <a href="https://github.com/Danial-Zolfaghari/ELK-Checker/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Danial-Zolfaghari/ELK-Checker/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/Danial-Zolfaghari/ELK-Checker/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Danial-Zolfaghari/ELK-Checker?display_name=tag&sort=semver"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/Danial-Zolfaghari/ELK-Checker"></a>
+</p>
+
 
 ---
 
