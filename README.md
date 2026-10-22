@@ -22,6 +22,8 @@
 
 ---
 
+> **Portfolio case study:** [ELK-Checker — engineering overview](https://danial-zolfaghari.github.io/work/elk-checker/) · Danial Zolfaghari / دانیال ذوالفقاری
+
 ## Overview
 
 **ELK-Checker** is a cross-platform monitoring dashboard that executes configured Elasticsearch checks, evaluates result rules, tracks state/history and dispatches notifications when conditions are met or repeated query failures occur.
